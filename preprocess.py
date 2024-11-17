@@ -69,8 +69,8 @@ def preprocess_videos(video_path1, video_path2, output_dir, target_fps=20):
     print(f"Preprocessed videos saved to:\n{output_video1}\n{output_video2}")
 
 # Example usage
-video1 = r'C:\Users\pavan\OneDrive\Desktop\gait anlaysis\forensic-gait-analysis\set1.0.mp4'
-video2 = r'C:\Users\pavan\OneDrive\Desktop\gait anlaysis\forensic-gait-analysis\set1.1.mp4'
+video1 = r'C:\Users\pavan\OneDrive\Desktop\gait anlaysis\forensic-gait-analysis\videos\set2.0.mp4'
+video2 = r'C:\Users\pavan\OneDrive\Desktop\gait anlaysis\forensic-gait-analysis\videos\set2.1.mp4'
 output_videos = r'C:\Users\pavan\OneDrive\Desktop\gait anlaysis\forensic-gait-analysis\processed_videos'
 
 preprocess_videos(video1, video2, output_videos, target_fps=20)

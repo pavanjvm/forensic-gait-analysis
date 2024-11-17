@@ -42,12 +42,13 @@ def extract_key_points(sequence_data):
             print("First frame keypoints length:", len(keypoints))
         
         # Recalculated indices for 2-value keypoints (x, y only, no confidence)
-        left_hip_idx = 22  # 11th keypoint * 2
-        right_hip_idx = 24 # 12th keypoint * 2
-        left_knee_idx = 26 # 13th keypoint * 2
-        right_knee_idx = 28 # 14th keypoint * 2
-        left_ankle_idx = 30 # 15th keypoint * 2
-        right_ankle_idx = 32 # 16th keypoint * 2
+        # Correct indices (starting after metadata at index 7)
+        left_hip_idx = 29   # 11th keypoint * 2 + 7
+        right_hip_idx = 31   # 12th keypoint * 2 + 7
+        left_knee_idx = 33   # 13th keypoint * 2 + 7
+        right_knee_idx = 35  # 14th keypoint * 2 + 7
+        left_ankle_idx = 37  # 15th keypoint * 2 + 7
+        right_ankle_idx = 39 # 16th keypoint * 2 + 7
         
         try:
             frame_points = {
