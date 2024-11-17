@@ -196,6 +196,6 @@ def main(folder1, folder2):
 
 if __name__ == "__main__":
     folder1 = r"C:\Users\pavan\OneDrive\Desktop\gait anlaysis\forensic-gait-analysis\runs\pose\predict\labels"
-    folder2 = r"C:\Users\pavan\OneDrive\Desktop\gait anlaysis\forensic-gait-analysis\runs\pose\predict\labels"
+    folder2 = r"C:\Users\pavan\OneDrive\Desktop\gait anlaysis\forensic-gait-analysis\runs\pose\predict2\labels"
     
     similarity_score, metrics = main(folder1, folder2)
