@@ -1,44 +1,63 @@
-# Forensic Gait Analysis  
+# Forensic Gait Analysis
 
-Forensic Gait Analysis is a project that compares two video footages — one from a crime scene and another from a suspect — to identify if they belong to the same person based on their gait (walking pattern).
+Forensic Gait Analysis is a tool that compares two video footages, one from a crime scene and another from a suspect, to determine if they depict the same person based on their gait patterns.
 
-## Features  
-- Preprocesses videos into 20 FPS and trims them to 6 seconds (120 frames total).  
-- Compares two videos using pose estimation and gait feature analysis.  
-- Outputs a similarity score and visualization for comparison.  
+## Table of Contents
+- [Installation](#installation)
+- [Usage](#usage)
+  - [Step 1: Preprocess the Videos](#step-1-preprocess-the-videos)
+  - [Step 2: Calculate Keypoints](#step-2-calculate-keypoints)
+  - [Step 3: Calculate Gait Similarity](#step-3-calculate-gait-similarity)
+- [Example](#example)
+- [Contributing](#contributing)
+- [License](#license)
 
----
+## Installation
 
-## Project Setup  
+1. Clone this repository:
 
-### Step 1: Install Dependencies  
+    ```bash
+    git clone https://github.com/your-username/forensic-gait-analysis.git
+    cd forensic-gait-analysis
+    ```
 
-Install the required Python packages by running:  
+2. Install the dependencies:
 
-```bash
-pip install -r requirements.txt
-```
+    ```bash
+    pip install -r requirements.txt
+    ```
 
+## Usage
 
-### Step 2: Preprocessing  
+### Step 1: Preprocess the Videos
 
-In this step, you will preprocess your input video files. The preprocessing will:
-- Convert videos to 20 frames per second (FPS).  
-- Trim the videos to a 6-second duration (120 frames in total).
+1. Update the paths in `preprocess.py` to point to the crime scene and suspect videos.
+2. Run the preprocessing script to convert each video to 20 fps and trim them to 6 seconds:
 
-To begin, follow these steps:
+    ```bash
+    python preprocess.py
+    ```
 
-1. **Place Your Videos**:  
-   Place the video files you want to preprocess in a folder (for example, `raw_videos/`).
+### Step 2: Calculate Keypoints
 
-2. **Update Video Paths**:  
-   Open the `preprocess.py` script and update the paths to point to your raw video files.  
-   - Set the input video path to where your raw videos are located.  
-   - Set the output folder to store the processed videos (e.g., `processed_videos/`).
+1. Update the paths in `pose.py` to point to the processed videos.
+2. Run the keypoint calculation script to generate keypoint data for each frame:
 
-3. **Run the Preprocessing Script**:  
-   Run the following command to preprocess the videos:  
+    ```bash
+    python pose.py
+    ```
 
-   ```bash
-   python preprocess.py
+### Step 3: Calculate Gait Similarity
+
+1. Update the paths in `gait-similarity.py` to point to the folder containing the keypoint labels.
+2. Run the gait similarity calculation and visualization script:
+
+    ```bash
+    python gait-similarity.py
+    ```
+
+## Example
+
+After completing the steps above, the `gait-similarity.py` script will output a similarity score and visualizations to help identify if the two footages depict the same person based on gait analysis.
+
 
