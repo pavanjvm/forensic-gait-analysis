@@ -61,6 +61,11 @@ Forensic Gait Analysis is a tool that compares two video footages, one from a cr
 
    This output shows the process of loading the video frames and extracting keypoints. The data shape and the number of keypoints per frame are displayed to verify the extraction.
 
+4. **Example Image (Keypoints Visualization):**
+   ![Keypoints Visualization](images/keypoints_example.png)
+
+   The above image visualizes the detected keypoints (such as joints and limbs) for a frame in the video. This step captures and marks body keypoints to extract gait-related features.
+
 ### Step 3: Calculate Gait Similarity
 
 1. Update the paths in `gait-similarity.py` to point to the folder containing the keypoint labels.
@@ -111,8 +116,12 @@ Forensic Gait Analysis is a tool that compares two video footages, one from a cr
     Generating visualization...
     ```
 
-   This output shows the calculated gait features for each sequence, including step length, stance width, and knee angles, as well as an overall similarity score and detailed comparison metrics. The visualization displays a side-by-side comparison of the gait features.
+4. **Example Image (Gait Similarity Visualization):**
+   ![Gait Similarity Visualization](images/gait_similarity_example.png)
+
+   The above image shows a visual comparison of gait features extracted from the two sequences. Each feature’s similarity score and an overall score are provided to help identify if the two footages depict the same person.
 
 ## Example
 
 After completing the steps above, the `gait-similarity.py` script will output a similarity score and visualizations to help identify if the two footages depict the same person based on gait analysis.
+
