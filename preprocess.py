@@ -1,76 +1,107 @@
 import cv2
 import os
 
-def preprocess_videos(video_path1, video_path2, output_dir, target_fps=20):
+def preprocess_videos(video_paths, output_dir, target_fps=20, target_duration=6):
+    """
+    Preprocess multiple videos to have the same FPS, duration, and frame count.
+    
+    Args:
+        video_paths (list): List of paths to input videos
+        output_dir (str): Directory to save processed videos
+        target_fps (int): Desired frames per second
+        target_duration (int): Desired duration in seconds
+    """
     # Create output directory if not exists
     os.makedirs(output_dir, exist_ok=True)
-
-    # Open the video files
-    cap1 = cv2.VideoCapture(video_path1)
-    cap2 = cv2.VideoCapture(video_path2)
-
-    # Check if videos are loaded
-    if not cap1.isOpened():
-        raise ValueError(f"Error: Cannot open video file {video_path1}")
-    if not cap2.isOpened():
-        raise ValueError(f"Error: Cannot open video file {video_path2}")
-
+    
+    # Calculate target frame count
+    target_frame_count = target_fps * target_duration
+    
+    # Open all video captures
+    caps = []
+    for video_path in video_paths:
+        cap = cv2.VideoCapture(video_path)
+        if not cap.isOpened():
+            raise ValueError(f"Error: Cannot open video file {video_path}")
+        caps.append(cap)
+    
     # Get video properties
-    fps1 = int(cap1.get(cv2.CAP_PROP_FPS))
-    fps2 = int(cap2.get(cv2.CAP_PROP_FPS))
-    frame_count1 = int(cap1.get(cv2.CAP_PROP_FRAME_COUNT))
-    frame_count2 = int(cap2.get(cv2.CAP_PROP_FRAME_COUNT))
-
-    if fps1 == 0 or fps2 == 0:
-        raise ValueError("Error: One of the video files has an invalid FPS value.")
-
-    duration1 = frame_count1 / fps1
-    duration2 = frame_count2 / fps2
-
-    # Determine the minimum duration
-    min_duration = min(duration1, duration2)
-
-    # Determine the frame counts for the minimum duration at target FPS
-    target_frame_count = int(min_duration * target_fps)
-
-    # Helper function to process a single video
+    video_properties = []
+    for cap in caps:
+        fps = int(cap.get(cv2.CAP_PROP_FPS))
+        if fps == 0:
+            raise ValueError("Error: One of the video files has an invalid FPS value.")
+        video_properties.append({
+            'fps': fps,
+            'frame_count': int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        })
+    
     def process_video(cap, output_path, source_fps):
+        """
+        Process a single video to match target specifications.
+        """
         frames = []
         success, frame = cap.read()
         count = 0
+        
         while success and len(frames) < target_frame_count:
             # Adjust to target FPS
             if count % int(source_fps / target_fps) == 0:
                 frames.append(frame)
             success, frame = cap.read()
             count += 1
-
-        # Write processed frames to a new video
-        if len(frames) == 0:
-            raise ValueError(f"No frames extracted from {output_path}.")
         
+        # If we don't have enough frames, loop the video
+        while len(frames) < target_frame_count:
+            frames.extend(frames[:target_frame_count - len(frames)])
+        
+        # Trim to exact number of frames if we have too many
+        frames = frames[:target_frame_count]
+        
+        if len(frames) == 0:
+            raise ValueError(f"No frames extracted from {output_path}")
+        
+        # Write processed frames to new video
         height, width, _ = frames[0].shape
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         out = cv2.VideoWriter(output_path, fourcc, target_fps, (width, height))
+        
         for frame in frames:
             out.write(frame)
         out.release()
-
-    # Process both videos
-    output_video1 = os.path.join(output_dir, "processed_video1.mp4")
-    output_video2 = os.path.join(output_dir, "processed_video2.mp4")
-    process_video(cap1, output_video1, fps1)
-    process_video(cap2, output_video2, fps2)
-
-    # Release video captures
-    cap1.release()
-    cap2.release()
-
-    print(f"Preprocessed videos saved to:\n{output_video1}\n{output_video2}")
+        
+        return len(frames)
+    
+    # Process all videos
+    processed_frames = []
+    for i, (cap, props) in enumerate(zip(caps, video_properties)):
+        output_path = os.path.join(output_dir, f"processed_video{i+1}.mp4")
+        frame_count = process_video(cap, output_path, props['fps'])
+        processed_frames.append(frame_count)
+        print(f"Processed video {i+1}: {frame_count} frames")
+        
+    # Release all captures
+    for cap in caps:
+        cap.release()
+    
+    # Verify all videos have the same number of frames
+    if len(set(processed_frames)) != 1:
+        raise ValueError("Error: Processed videos have different frame counts")
+    
+    print(f"\nAll videos processed successfully:")
+    print(f"Target FPS: {target_fps}")
+    print(f"Target duration: {target_duration} seconds")
+    print(f"Frame count per video: {processed_frames[0]}")
+    print(f"Output directory: {output_dir}")
 
 # Example usage
-video1 = r'C:\Users\pavan\OneDrive\Desktop\gait anlaysis\forensic-gait-analysis\videos\set2.0.mp4'
-video2 = r'C:\Users\pavan\OneDrive\Desktop\gait anlaysis\forensic-gait-analysis\videos\set2.1.mp4'
-output_videos = r'C:\Users\pavan\OneDrive\Desktop\gait anlaysis\forensic-gait-analysis\processed_videos'
+video_paths = [
+    r'C:\Users\pavan\OneDrive\Desktop\gait anlaysis\forensic-gait-analysis\videos\person1-a.mp4',
+    r'C:\Users\pavan\OneDrive\Desktop\gait anlaysis\forensic-gait-analysis\videos\person1-b.mp4',
+    r'C:\Users\pavan\OneDrive\Desktop\gait anlaysis\forensic-gait-analysis\videos\person2-a.mp4',
+    r'C:\Users\pavan\OneDrive\Desktop\gait anlaysis\forensic-gait-analysis\videos\person2-b.mp4'
+]
 
-preprocess_videos(video1, video2, output_videos, target_fps=20)
+output_dir = r'C:\Users\pavan\OneDrive\Desktop\gait anlaysis\forensic-gait-analysis\processed_videos'
+
+preprocess_videos(video_paths, output_dir, target_fps=20, target_duration=6)

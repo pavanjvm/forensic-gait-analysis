@@ -25,7 +25,6 @@ def load_sequence_keypoints(folder_path):
 def extract_key_points(sequence_data):
     """
     Extract relevant keypoints for gait comparison
-    We'll focus on lower body keypoints that are most relevant for gait
     """
     print("Frame data shape:", sequence_data.shape)
     print("Number of values in first frame:", len(sequence_data[0]))
@@ -33,22 +32,17 @@ def extract_key_points(sequence_data):
     relevant_points = []
     
     for frame in sequence_data:
-        # Based on the actual data structure where keypoints start at index 7
-        # and each keypoint has 2 values (x, y)
         keypoints = frame[7:]  # All keypoints data
         
-        # Print first frame keypoints structure for debugging
         if len(relevant_points) == 0:
             print("First frame keypoints length:", len(keypoints))
         
-        # Recalculated indices for 2-value keypoints (x, y only, no confidence)
-        # Correct indices (starting after metadata at index 7)
-        left_hip_idx = 29   # 11th keypoint * 2 + 7
-        right_hip_idx = 31   # 12th keypoint * 2 + 7
-        left_knee_idx = 33   # 13th keypoint * 2 + 7
-        right_knee_idx = 35  # 14th keypoint * 2 + 7
-        left_ankle_idx = 37  # 15th keypoint * 2 + 7
-        right_ankle_idx = 39 # 16th keypoint * 2 + 7
+        left_hip_idx = 29
+        right_hip_idx = 31
+        left_knee_idx = 33
+        right_knee_idx = 35
+        left_ankle_idx = 37
+        right_ankle_idx = 39
         
         try:
             frame_points = {
@@ -70,19 +64,53 @@ def extract_key_points(sequence_data):
 
 def calculate_angle(point1, point2, point3):
     """
-    Calculate angle between three points
+    Calculate angle between three points with improved error handling and debugging
     """
-    vector1 = np.array([point1[0] - point2[0], point1[1] - point2[1]])
-    vector2 = np.array([point3[0] - point2[0], point3[1] - point2[1]])
-    
-    # Handle zero vectors
-    if np.all(vector1 == 0) or np.all(vector2 == 0):
+    try:
+        p1 = np.array(point1)
+        p2 = np.array(point2)
+        p3 = np.array(point3)
+        
+        vector1 = p1 - p2
+        vector2 = p3 - p2
+        
+        if np.all(vector1 == 0) or np.all(vector2 == 0):
+            print(f"Warning: Zero vector detected!")
+            print(f"Points: {point1}, {point2}, {point3}")
+            return 0
+        
+        dot_product = np.dot(vector1, vector2)
+        magnitude1 = np.linalg.norm(vector1)
+        magnitude2 = np.linalg.norm(vector2)
+        
+        if magnitude1 == 0 or magnitude2 == 0:
+            print(f"Warning: Zero magnitude detected!")
+            print(f"Vector1 magnitude: {magnitude1}, Vector2 magnitude: {magnitude2}")
+            return 0
+        
+        cos_angle = dot_product / (magnitude1 * magnitude2)
+        
+        if cos_angle > 1:
+            cos_angle = 1
+        elif cos_angle < -1:
+            cos_angle = -1
+        
+        angle = np.degrees(np.arccos(cos_angle))
+        
+        if angle == 0:
+            print(f"Zero angle detected!")
+            print(f"Points: Hip: {point1}, Knee: {point2}, Ankle: {point3}")
+            print(f"Vectors: {vector1}, {vector2}")
+            print(f"Dot product: {dot_product}")
+            print(f"Magnitudes: {magnitude1}, {magnitude2}")
+            print(f"Cosine: {cos_angle}")
+        
+        return angle
+        
+    except Exception as e:
+        print(f"Error in angle calculation: {str(e)}")
+        print(f"Points: {point1}, {point2}, {point3}")
         return 0
-    
-    cos_angle = np.dot(vector1, vector2) / (np.linalg.norm(vector1) * np.linalg.norm(vector2))
-    angle = np.arccos(np.clip(cos_angle, -1.0, 1.0))
-    
-    return np.degrees(angle)
 
 def calculate_gait_features(points_sequence):
     """
@@ -90,19 +118,21 @@ def calculate_gait_features(points_sequence):
     """
     features = []
     
-    for points in points_sequence:
-        # Calculate step length (distance between ankles)
+    for i, points in enumerate(points_sequence):
         step_length = euclidean(points['left_ankle'], points['right_ankle'])
-        
-        # Calculate stance width (distance between hips)
         stance_width = euclidean(points['left_hip'], points['right_hip'])
         
-        # Calculate knee angles
         left_knee_angle = calculate_angle(
             points['left_hip'],
             points['left_knee'],
             points['left_ankle']
         )
+        
+        if left_knee_angle == 0:
+            print(f"\nFrame {i} Left Knee Debug:")
+            print(f"Left Hip: {points['left_hip']}")
+            print(f"Left Knee: {points['left_knee']}")
+            print(f"Left Ankle: {points['left_ankle']}")
         
         right_knee_angle = calculate_angle(
             points['right_hip'],
@@ -112,21 +142,21 @@ def calculate_gait_features(points_sequence):
         
         features.append([step_length, stance_width, left_knee_angle, right_knee_angle])
     
+    features_array = np.array(features)
+    print("\nFeature Statistics:")
+    print("Step Length - Mean:", np.mean(features_array[:, 0]), "Max:", np.max(features_array[:, 0]))
+    print("Stance Width - Mean:", np.mean(features_array[:, 1]), "Max:", np.max(features_array[:, 1]))
+    print("Left Knee Angle - Mean:", np.mean(features_array[:, 2]), "Max:", np.max(features_array[:, 2]))
+    print("Right Knee Angle - Mean:", np.mean(features_array[:, 3]), "Max:", np.max(features_array[:, 3]))
+    
     return np.array(features)
 
 def compare_sequences(features1, features2):
     """
     Compare two gait sequences
     """
-    # Ensure sequences are the same length by truncating to shorter sequence
-    min_length = min(len(features1), len(features2))
-    features1 = features1[:min_length]
-    features2 = features2[:min_length]
-    
-    # Calculate mean absolute difference for each feature
     differences = np.mean(np.abs(features1 - features2), axis=0)
     
-    # Calculate similarity score (inverse of difference)
     max_diff = np.max(differences)
     if max_diff == 0:
         similarities = np.array([100.0] * len(differences))
@@ -136,7 +166,6 @@ def compare_sequences(features1, features2):
     feature_names = ['Step Length', 'Stance Width', 'Left Knee Angle', 'Right Knee Angle']
     detailed_metrics = dict(zip(feature_names, similarities))
     
-    # Overall similarity score
     overall_score = np.mean(similarities)
     
     return overall_score, detailed_metrics
@@ -163,7 +192,7 @@ def visualize_comparison(features1, features2):
 
 def main(folder1, folder2):
     """
-    Main function to compare two sets of gait sequences
+    Main function to process and compare two gait sequences
     """
     # Load sequences
     print("Loading sequences...")
@@ -196,7 +225,7 @@ def main(folder1, folder2):
     return similarity_score, detailed_metrics
 
 if __name__ == "__main__":
-    folder1 = r"C:\Users\pavan\OneDrive\Desktop\gait anlaysis\forensic-gait-analysis\runs\pose\predict\labels"
-    folder2 = r"C:\Users\pavan\OneDrive\Desktop\gait anlaysis\forensic-gait-analysis\runs\pose\predict2\labels"
+    folder1 = r"C:\Users\pavan\OneDrive\Desktop\gait anlaysis\forensic-gait-analysis\runs\pose\predict3\labels"
+    folder2 = r"C:\Users\pavan\OneDrive\Desktop\gait anlaysis\forensic-gait-analysis\runs\pose\predict4\labels"
     
     similarity_score, metrics = main(folder1, folder2)
