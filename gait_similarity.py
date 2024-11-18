@@ -64,104 +64,133 @@ def extract_key_points(sequence_data):
 
 def calculate_angle(point1, point2, point3):
     """
-    Calculate angle between three points with improved error handling and debugging
+    Calculate angle between three points with enhanced debugging and validation
     """
     try:
         p1 = np.array(point1)
         p2 = np.array(point2)
         p3 = np.array(point3)
         
+        # Validate input points
+        if np.any(np.isnan(p1)) or np.any(np.isnan(p2)) or np.any(np.isnan(p3)):
+            print(f"Warning: NaN values detected in points")
+            return None
+            
         vector1 = p1 - p2
         vector2 = p3 - p2
         
-        if np.all(vector1 == 0) or np.all(vector2 == 0):
-            print(f"Warning: Zero vector detected!")
-            print(f"Points: {point1}, {point2}, {point3}")
-            return 0
+        # Early validation of vectors
+        if np.allclose(vector1, 0) or np.allclose(vector2, 0):
+            print(f"Warning: Zero vector detected")
+            print(f"Vector1: {vector1}, Vector2: {vector2}")
+            return None
+            
+        # Calculate angle using arctan2 for more stable results
+        angle = np.abs(np.degrees(
+            np.arctan2(np.linalg.norm(np.cross(vector1, vector2)), np.dot(vector1, vector2))
+        ))
         
-        dot_product = np.dot(vector1, vector2)
-        magnitude1 = np.linalg.norm(vector1)
-        magnitude2 = np.linalg.norm(vector2)
-        
-        if magnitude1 == 0 or magnitude2 == 0:
-            print(f"Warning: Zero magnitude detected!")
-            print(f"Vector1 magnitude: {magnitude1}, Vector2 magnitude: {magnitude2}")
-            return 0
-        
-        cos_angle = dot_product / (magnitude1 * magnitude2)
-        
-        if cos_angle > 1:
-            cos_angle = 1
-        elif cos_angle < -1:
-            cos_angle = -1
-        
-        angle = np.degrees(np.arccos(cos_angle))
-        
-        if angle == 0:
-            print(f"Zero angle detected!")
-            print(f"Points: Hip: {point1}, Knee: {point2}, Ankle: {point3}")
-            print(f"Vectors: {vector1}, {vector2}")
-            print(f"Dot product: {dot_product}")
-            print(f"Magnitudes: {magnitude1}, {magnitude2}")
-            print(f"Cosine: {cos_angle}")
-        
+        # Validate angle
+        if not (0 <= angle <= 180):
+            print(f"Warning: Invalid angle calculated: {angle}")
+            return None
+            
         return angle
         
     except Exception as e:
         print(f"Error in angle calculation: {str(e)}")
         print(f"Points: {point1}, {point2}, {point3}")
-        return 0
+        return None
 
 def calculate_gait_features(points_sequence):
     """
-    Calculate key gait features for each frame
+    Calculate key gait features with enhanced error handling
     """
     features = []
+    valid_frames = 0
+    invalid_frames = 0
     
     for i, points in enumerate(points_sequence):
-        step_length = euclidean(points['left_ankle'], points['right_ankle'])
-        stance_width = euclidean(points['left_hip'], points['right_hip'])
-        
-        left_knee_angle = calculate_angle(
-            points['left_hip'],
-            points['left_knee'],
-            points['left_ankle']
-        )
-        
-        if left_knee_angle == 0:
-            print(f"\nFrame {i} Left Knee Debug:")
-            print(f"Left Hip: {points['left_hip']}")
-            print(f"Left Knee: {points['left_knee']}")
-            print(f"Left Ankle: {points['left_ankle']}")
-        
-        right_knee_angle = calculate_angle(
-            points['right_hip'],
-            points['right_knee'],
-            points['right_ankle']
-        )
-        
-        features.append([step_length, stance_width, left_knee_angle, right_knee_angle])
+        try:
+            # Calculate basic measurements
+            step_length = euclidean(points['left_ankle'], points['right_ankle'])
+            stance_width = euclidean(points['left_hip'], points['right_hip'])
+            
+            # Calculate angles with validation
+            left_knee_angle = calculate_angle(
+                points['left_hip'],
+                points['left_knee'],
+                points['left_ankle']
+            )
+            
+            right_knee_angle = calculate_angle(
+                points['right_hip'],
+                points['right_knee'],
+                points['right_ankle']
+            )
+            
+            # Validate all measurements
+            if all(x is not None and not np.isnan(x) for x in [step_length, stance_width, left_knee_angle, right_knee_angle]):
+                features.append([step_length, stance_width, left_knee_angle, right_knee_angle])
+                valid_frames += 1
+            else:
+                print(f"\nSkipping frame {i} due to invalid measurements:")
+                print(f"Step length: {step_length}")
+                print(f"Stance width: {stance_width}")
+                print(f"Left knee angle: {left_knee_angle}")
+                print(f"Right knee angle: {right_knee_angle}")
+                invalid_frames += 1
+                
+        except Exception as e:
+            print(f"Error processing frame {i}: {str(e)}")
+            invalid_frames += 1
+            continue
     
+    if not features:
+        raise ValueError("No valid frames were processed!")
+        
     features_array = np.array(features)
-    print("\nFeature Statistics:")
-    print("Step Length - Mean:", np.mean(features_array[:, 0]), "Max:", np.max(features_array[:, 0]))
-    print("Stance Width - Mean:", np.mean(features_array[:, 1]), "Max:", np.max(features_array[:, 1]))
-    print("Left Knee Angle - Mean:", np.mean(features_array[:, 2]), "Max:", np.max(features_array[:, 2]))
-    print("Right Knee Angle - Mean:", np.mean(features_array[:, 3]), "Max:", np.max(features_array[:, 3]))
     
-    return np.array(features)
+    print(f"\nProcessing Summary:")
+    print(f"Valid frames: {valid_frames}")
+    print(f"Invalid frames: {invalid_frames}")
+    print(f"Valid frame percentage: {(valid_frames/(valid_frames+invalid_frames))*100:.2f}%")
+    
+    print("\nFeature Statistics:")
+    print("Step Length - Mean:", np.mean(features_array[:, 0]), "Std:", np.std(features_array[:, 0]))
+    print("Stance Width - Mean:", np.mean(features_array[:, 1]), "Std:", np.std(features_array[:, 1]))
+    print("Left Knee Angle - Mean:", np.mean(features_array[:, 2]), "Std:", np.std(features_array[:, 2]))
+    print("Right Knee Angle - Mean:", np.mean(features_array[:, 3]), "Std:", np.std(features_array[:, 3]))
+    
+    return features_array
 
 def compare_sequences(features1, features2):
     """
-    Compare two gait sequences
+    Compare two gait sequences with improved normalization
     """
-    differences = np.mean(np.abs(features1 - features2), axis=0)
+    # Ensure sequences are of same length
+    min_length = min(len(features1), len(features2))
+    features1 = features1[:min_length]
+    features2 = features2[:min_length]
     
-    max_diff = np.max(differences)
-    if max_diff == 0:
-        similarities = np.array([100.0] * len(differences))
-    else:
-        similarities = 100 * (1 - differences / max_diff)
+    # Calculate differences with normalization
+    differences = []
+    for i in range(4):  # For each feature
+        f1 = features1[:, i]
+        f2 = features2[:, i]
+        
+        # Normalize each feature to its range
+        range_val = max(np.ptp(f1), np.ptp(f2))
+        if range_val > 0:
+            diff = np.mean(np.abs(f1 - f2)) / range_val
+        else:
+            diff = 0
+        differences.append(diff)
+    
+    differences = np.array(differences)
+    
+    # Convert to similarity scores
+    similarities = 100 * (1 - differences)
     
     feature_names = ['Step Length', 'Stance Width', 'Left Knee Angle', 'Right Knee Angle']
     detailed_metrics = dict(zip(feature_names, similarities))
@@ -172,20 +201,23 @@ def compare_sequences(features1, features2):
 
 def visualize_comparison(features1, features2):
     """
-    Visualize the comparison between two gait sequences
+    Visualize the comparison between two gait sequences with simplified plotting
     """
     feature_names = ['Step Length', 'Stance Width', 'Left Knee Angle', 'Right Knee Angle']
     
     fig, axes = plt.subplots(2, 2, figsize=(15, 10))
-    fig.suptitle('Gait Pattern Comparison')
+    fig.suptitle('Gait Pattern Comparison', fontsize=16)
     
     for i, (ax, name) in enumerate(zip(axes.flat, feature_names)):
-        ax.plot(features1[:, i], label='Person 1', alpha=0.7)
-        ax.plot(features2[:, i], label='Person 2', alpha=0.7)
-        ax.set_title(name)
-        ax.set_xlabel('Frame')
-        ax.legend()
-        ax.grid(True)
+        frames = range(len(features1[:, i]))
+        ax.plot(frames, features1[:, i], label='Person 1', alpha=0.7, linewidth=2)
+        ax.plot(frames, features2[:, i], label='Person 2', alpha=0.7, linewidth=2)
+        ax.set_title(name, fontsize=12)
+        ax.set_xlabel('Frame', fontsize=10)
+        ax.set_ylabel('Value', fontsize=10)
+        ax.legend(fontsize=10)
+        ax.grid(True, linestyle='--', alpha=0.7)
+        ax.tick_params(labelsize=8)
     
     plt.tight_layout()
     plt.show()
@@ -194,38 +226,49 @@ def main(folder1, folder2):
     """
     Main function to process and compare two gait sequences
     """
-    # Load sequences
-    print("Loading sequences...")
-    seq1 = load_sequence_keypoints(folder1)
-    seq2 = load_sequence_keypoints(folder2)
-    
-    # Extract relevant points
-    print("Extracting keypoints...")
-    points1 = extract_key_points(seq1)
-    points2 = extract_key_points(seq2)
-    
-    # Calculate features
-    print("Calculating gait features...")
-    features1 = calculate_gait_features(points1)
-    features2 = calculate_gait_features(points2)
-    
-    # Compare sequences
-    print("Comparing sequences...")
-    similarity_score, detailed_metrics = compare_sequences(features1, features2)
-    
-    # Visualize comparison
-    visualize_comparison(features1, features2)
-    
-    # Print results
-    print(f"\nOverall Similarity Score: {similarity_score:.2f}%")
-    print("\nDetailed Metrics (higher is more similar):")
-    for feature, score in detailed_metrics.items():
-        print(f"{feature}: {score:.2f}%")
-    
-    return similarity_score, detailed_metrics
+    try:
+        # Load sequences
+        print("Loading sequences...")
+        seq1 = load_sequence_keypoints(folder1)
+        seq2 = load_sequence_keypoints(folder2)
+        
+        # Extract relevant points
+        print("\nExtracting keypoints...")
+        points1 = extract_key_points(seq1)
+        points2 = extract_key_points(seq2)
+        
+        # Calculate features
+        print("\nCalculating gait features for sequence 1...")
+        features1 = calculate_gait_features(points1)
+        print("\nCalculating gait features for sequence 2...")
+        features2 = calculate_gait_features(points2)
+        
+        # Compare sequences
+        print("\nComparing sequences...")
+        similarity_score, detailed_metrics = compare_sequences(features1, features2)
+        
+        # Print results
+        print(f"\nOverall Similarity Score: {similarity_score:.2f}%")
+        print("\nDetailed Metrics (higher is more similar):")
+        for feature, score in detailed_metrics.items():
+            print(f"{feature}: {score:.2f}%")
+        
+        # Visualize comparison
+        print("\nGenerating visualization...")
+        visualize_comparison(features1, features2)
+        
+        return similarity_score, detailed_metrics
+        
+    except Exception as e:
+        print(f"\nError in main processing: {str(e)}")
+        raise
 
 if __name__ == "__main__":
-    folder1 = r"C:\Users\pavan\OneDrive\Desktop\gait anlaysis\forensic-gait-analysis\runs\pose\predict3\labels"
-    folder2 = r"C:\Users\pavan\OneDrive\Desktop\gait anlaysis\forensic-gait-analysis\runs\pose\predict4\labels"
+    # Configure folders
+    folder1 = r"C:\Users\pavan\OneDrive\Desktop\gait anlaysis\forensic-gait-analysis\runs\pose\predict\labels"
+    folder2 = r"C:\Users\pavan\OneDrive\Desktop\gait anlaysis\forensic-gait-analysis\runs\pose\predict2\labels"
     
-    similarity_score, metrics = main(folder1, folder2)
+    try:
+        similarity_score, metrics = main(folder1, folder2)
+    except Exception as e:
+        print(f"\nProgram terminated with error: {str(e)}")
