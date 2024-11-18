@@ -53,7 +53,7 @@ Forensic Gait Analysis is a tool that compares two video footages, one from a cr
    This output shows the process of loading the video frames and extracting keypoints. The data shape and the number of keypoints per frame are displayed to verify the extraction.
 
 4. **Example Image (Keypoints Visualization):**
-   ![Keypoints Visualization](images/Screenshot_2024-11-18_142131.png)
+   ![Keypoints Visualization](images/keypoint.png)
 
    The above image visualizes the detected keypoints (such as joints and limbs) for a frame in the video. This step captures and marks body keypoints to extract gait-related features.
 
@@ -108,7 +108,7 @@ Forensic Gait Analysis is a tool that compares two video footages, one from a cr
     ```
 
 4. **Example Image (Gait Similarity Visualization):**
-   ![Gait Similarity Visualization](images/Screenshot_2024-11-18_142028.png)
+   ![Gait Similarity Visualization](images/visualization.png)
 
    The above image shows a visual comparison of gait features extracted from the two sequences. Each feature’s similarity score and an overall score are provided to help identify if the two footages depict the same person.
 
