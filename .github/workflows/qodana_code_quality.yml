@@ -1,11 +1,11 @@
 name: Qodana
-
 on:
+  workflow_dispatch:
   pull_request:
   push:
-    branches: 
-      - pavan
-      - 'releases/*'
+    branches: # Specify your branches here
+      - pavan # The 'main' branch
+      - 'releases/*' # The release branches
 
 jobs:
   qodana:
@@ -15,41 +15,14 @@ jobs:
       pull-requests: write
       checks: write
     steps:
-      # Step 1: Check out the repository
       - uses: actions/checkout@v3
         with:
-          ref: ${{ github.event.pull_request.head.sha }}  # Analyze the actual commit in the PR
-          fetch-depth: 0  # Full history for pull request analysis
-
-      # Step 2: Run Qodana to scan the code
+          ref: ${{ github.event.pull_request.head.sha }}  # to check out the actual pull request commit, not the merge commit
+          fetch-depth: 0  # a full history is required for pull request analysis
       - name: 'Qodana Scan'
         uses: JetBrains/qodana-action@v2024.2
         with:
-          pr-mode: false  # Disable PR-specific mode to analyze the full codebase
+          pr-mode: false
         env:
           QODANA_TOKEN: ${{ secrets.QODANA_TOKEN_1565728014 }}
           QODANA_ENDPOINT: 'https://qodana.cloud'
-
-      # Step 3: Commit Qodana's recommended changes
-      - name: Commit changes
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add .
-          git commit -m "Apply Qodana recommended changes" || echo "No changes to commit"
-
-      # Step 4: Push changes to a new branch
-      - name: Push changes
-        run: |
-          NEW_BRANCH="qodana-fix-$(date +'%Y%m%d%H%M%S')"
-          git checkout -b "$NEW_BRANCH"
-          git push origin "$NEW_BRANCH"
-
-      # Step 5: Create a pull request
-      - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v5
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          branch: $NEW_BRANCH
-          title: "Qodana recommended changes"
-          body: "This pull request applies changes recommended by Qodana for improved code quality."
