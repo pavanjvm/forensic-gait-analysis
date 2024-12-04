@@ -7,7 +7,7 @@ def load_keypoints(folder_path):
     all_frames = []
     files = [f for f in os.listdir(folder_path) if f.endswith('.txt')]
     files.sort()
-    
+#made a small change
     for file in files:
         with open(os.path.join(folder_path, file), 'r') as f:
             data = f.readline().strip().split()
