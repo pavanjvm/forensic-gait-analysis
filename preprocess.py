@@ -35,6 +35,40 @@ def preprocess_videos(video_paths, output_dir, target_fps=20, target_duration=6)
             'fps': fps,
             'frame_count': int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         })
+def preprocess_videos(video_paths, output_dir, target_fps=20, target_duration=6):
+    """
+    Preprocess multiple videos to have the same FPS, duration, and frame count.
+    
+    Args:
+        video_paths (list): List of paths to input videos
+        output_dir (str): Directory to save processed videos
+        target_fps (int): Desired frames per second
+        target_duration (int): Desired duration in seconds
+    """
+    # Create output directory if not exists
+    os.makedirs(output_dir, exist_ok=True)
+    
+    # Calculate target frame count
+    target_frame_count = target_fps * target_duration
+    
+    # Open all video captures
+    caps = []
+    for video_path in video_paths:
+        cap = cv2.VideoCapture(video_path)
+        if not cap.isOpened():
+            raise ValueError(f"Error: Cannot open video file {video_path}")
+        caps.append(cap)
+    
+    # Get video properties
+    video_properties = []
+    for cap in caps:
+        fps = int(cap.get(cv2.CAP_PROP_FPS))
+        if fps == 0:
+            raise ValueError("Error: One of the video files has an invalid FPS value.")
+        video_properties.append({
+            'fps': fps,
+            'frame_count': int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        })
     
     def process_video(cap, output_path, source_fps):
         """
